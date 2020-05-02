@@ -1,6 +1,16 @@
 const { Telegraf } = require('telegraf')
 require("dotenv").config()
 
+const {
+    createEntryForChat,
+    storeBannedUserID,
+    setAdminChat,
+} = require("./db")
+
+const {
+    sendMessageToAdminChat
+} = require("./helpers")
+
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const Telegram = require('telegraf/telegram')
 const telegram = new Telegram(process.env.BOT_TOKEN)
@@ -22,13 +32,45 @@ bot.use(async (ctx, next) => {
     next()
 })
 
+bot.use((ctx,next) => {
+    createEntryForChat(ctx.chat.id)
+    // storeBannedUserID(ctx.chat.id, ctx.from.id)
+    // sendMessageToAdminChat(ctx, telegram)
+
+    next()
+})
+
 bot.use((ctx, next) => {
-    console.log("Msg:",ctx.message.text);
+    console.log("Msg:",ctx.message.text,"ChatName:",ctx.chat.title, "ChatUsername:", ctx.chat.username, "ChatID:", ctx.chat.id);
     next()
 })
 
 
 bot.start((ctx) => ctx.reply('I shall kill exe spammers :)'))
+
+// Usage: /setadmin 123456
+bot.command("setadmin", async (ctx) => {
+    console.log("setadmin", ctx.message);
+    let adminChatid = ctx.message.text.split(" ")[1]
+    // console.log(adminChatid);
+
+    ctx.getChatMember(ctx.from.id)
+    .then((user) =>{
+        console.log("UserStatus:",user.status);
+        if(user.status === 'administrator')
+            return setAdminChat(ctx.chat.id, adminChatid)
+        
+        return false 
+    })
+    .then((resp)=>{
+        if(resp)
+            ctx.reply("Admin Chat Set !")
+        else{
+            ctx.reply("You are not admin !")
+        }
+    })
+    // .catch()
+})
 
 bot.use((ctx, next) => {
     if(!ctx.message.document)
@@ -40,8 +82,12 @@ bot.use((ctx, next) => {
     if(extension === "exe"){
         // Ban user
         // ctx.reply("Will ban")
+        ctx.reply(`Exe spam detected, kicking user.\nUser Name: ${ctx.message.from.first_name}\nUser ID: ${ctx.message.from.id}`)
+
+        storeBannedUserID(ctx.chat.id, ctx.from.id)
+        sendMessageToAdminChat(ctx, telegram)
+
         if(ctx.message.isAdmin){
-            ctx.reply(`Exe spam detected, kicking user.\nUser Name: ${ctx.message.from.first_name}\nUser ID: ${ctx.message.from.id}`)
 
             telegram.deleteMessage(ctx.message.chat.id, ctx.message.message_id)
             .catch((err) => {
@@ -52,7 +98,7 @@ bot.use((ctx, next) => {
             .catch((err) => {
                 console.log("Cannot Kick User:",err);
             })
-
+           
         } else {
             ctx.reply("I have to be a admin in this group to kick people out.")
         }
@@ -62,4 +108,5 @@ bot.use((ctx, next) => {
 })
 
 
-bot.launch()
+bot.launch().then(() => console.log("Bot started"));
+
