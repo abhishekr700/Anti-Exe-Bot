@@ -8,7 +8,8 @@ const {
 } = require("./db")
 
 const {
-    sendMessageToAdminChat
+    sendMessageToAdminChat,
+    sendHelp
 } = require("./helpers")
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
@@ -46,7 +47,12 @@ bot.use((ctx, next) => {
 })
 
 
-bot.start((ctx) => ctx.reply('I shall kill exe spammers :)'))
+bot.start((ctx) => {
+    ctx.reply('Anti Exe Spam Bot\n\nI will kick anyone who shares a exe file here(and delete the message too). Exe files are not safe !\nAlso, I need admin privileges to kick users & delete messages.')
+    sendHelp(ctx)
+})
+
+bot.help(ctx => sendHelp(ctx))
 
 // Usage: /setadmin 123456
 bot.command("setadmin", async (ctx) => {

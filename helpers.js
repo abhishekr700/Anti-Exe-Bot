@@ -24,6 +24,11 @@ const sendMessageToAdminChat = async (ctx, telegram) => {
     }
 }
 
+const sendHelp = (ctx) => {
+    ctx.reply("/setadmin <adminchatid> : To send spam notifications to a admin group.\n/help : To see bot help")
+}
+
 module.exports = {
-    sendMessageToAdminChat
+    sendMessageToAdminChat,
+    sendHelp
 }
